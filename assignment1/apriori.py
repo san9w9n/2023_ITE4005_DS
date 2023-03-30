@@ -1,20 +1,8 @@
-# Ck: Candidate itemset of size k
-# Lk: frequent itemset of size k
-# L1= {frequent items};
-
-# for(k = 1; Lk != None; k++) do begin
-#   Ck+1 = candidates generated from Lk
-#   for each transaction t in database do
-#       increment the count of all candidates in Ck+1 that are contained in t
-#       Lk+1 = candidates in Ck+1 with min_support
-#   end
-# return ∪kLk
-
-from itertools import chain, combinations
-import sys
-
 from collections import defaultdict
 from typing import Set, List, Dict, Tuple
+from itertools import chain, combinations
+
+import sys
 
 min_sup: float = None
 input_file_name: str = None
