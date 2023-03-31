@@ -14,12 +14,15 @@ freq_dict: defaultdict[frozenset, int] = defaultdict(int)
 
 
 def throw_error_with_message(message : str) -> None:
+    ''' 에러 처리를 위한 함수 '''
     print(f'Error: {message}')
     sys.exit(1)
 
 
 def set_all():
+    ''' 초기 세팅을 위한 함수 '''
     def set_variables_from_args():
+        ''' 프로그램 인자로부터 변수 세팅 '''
         global min_sup, input_file_name, output_file_name
 
         argv = sys.argv
@@ -31,6 +34,7 @@ def set_all():
             throw_error_with_message("minimum support should be number(float, int ...)")
 
     def set_transactions_list_from_file():
+        ''' 입력 파일로부터 trxs 변수 세팅 '''
         global trxs
 
         trxs = []
@@ -46,11 +50,12 @@ def set_all():
 
 
 def set_item_set_of_k(k: int):
+    ''' k 에 해당하는 item_set 세팅 '''
     global item_set
 
     if k == 1:
         item_set[1] = { frozenset([c]) for trx in trxs for c in trx } 
-    else:
+    elif k > 1:
         ret = []
         for i in item_set[k-1]:
             for j in item_set[k-1]:
@@ -58,21 +63,12 @@ def set_item_set_of_k(k: int):
                 if len(new_set) == k:
                     ret.append(new_set)
         item_set[k] = set(ret)
-
-
-def get_array_of_subset_pair(s: frozenset) -> List[Tuple[frozenset, frozenset]]:
-    subsets = chain(*[combinations(s, i + 1) for i in range(len(s))])
-    subsets_iter = map(frozenset, [subset for subset in subsets])
-
-    ret = []
-    for subset1 in subsets_iter:
-        subset2 = s.difference(subset1)
-        if len(subset2) > 0:
-            ret.append((subset1, subset2))
-    return ret
+    else:
+        throw_error_with_message("k should be positive number")
 
 
 def remove_infrequent_item_from_item_set(k: int):
+    ''' item_set으로부터 frequent가 아닌 item 제거 '''
     global freq_dict, item_set
 
     local_dict: defaultdict[frozenset, int] = defaultdict(int)
@@ -91,17 +87,20 @@ def remove_infrequent_item_from_item_set(k: int):
             item_set[k].remove(c)
 
 
-def start_apriori():
+def set_association_rules():
+    ''' association rules 적용 '''
     global results
 
-    k =  1
-    while True:
-        set_item_set_of_k(k)
-        remove_infrequent_item_from_item_set(k)
-        if len(item_set[k]) == 0:
-            del item_set[k]
-            break
-        k += 1
+    def get_array_of_subset_pair(s: frozenset) -> List[Tuple[frozenset, frozenset]]:
+        subsets = chain(*[combinations(s, i + 1) for i in range(len(s))])
+        subsets_iter = map(frozenset, [subset for subset in subsets])
+
+        ret = []
+        for subset1 in subsets_iter:
+            subset2 = s.difference(subset1)
+            if len(subset2) > 0:
+                ret.append((subset1, subset2))
+        return ret
 
     results = []
     for k, item in item_set.items():
@@ -115,7 +114,21 @@ def start_apriori():
                     results.append((subset1, subset2, round(support * 100, 2), round(confidence * 100, 2)))
 
 
+def start_apriori():
+    ''' apriori 알고리즘 실행 '''
+    k =  1
+    while True:
+        set_item_set_of_k(k)
+        remove_infrequent_item_from_item_set(k)
+        if len(item_set[k]) == 0:
+            del item_set[k]
+            break
+        k += 1
+    set_association_rules()
+    
+
 def write_results():
+    ''' 결과 저장 '''
     with open(output_file_name, "w", encoding='utf-8') as f:
         for result in results:
             str_result = [
