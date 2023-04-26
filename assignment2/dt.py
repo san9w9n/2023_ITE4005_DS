@@ -60,7 +60,7 @@ def get_best_feature_idx(dataset, visited) -> int:
     return best_feature_idx
 
 
-def build_tree(dataset, features, visited):
+def build_tree(dataset, features, all_category, visited):
     label_list = [row[-1] for row in dataset]
 
     # 종료 컨디션 1: 레이블이 하나밖에 남지 않았을 때
@@ -82,8 +82,13 @@ def build_tree(dataset, features, visited):
     split_keys, split_dataset_arr = split_with_category(dataset, best_feature_idx)
         
     for key, split_dataset in zip(split_keys, split_dataset_arr):
-        tree[best_feature_name][key] = build_tree(split_dataset, features, visited[:])
+        tree[best_feature_name][key] = build_tree(split_dataset, features, all_category, visited[:])
     
+    if len(split_keys) != len(all_category[best_feature_idx]):
+        for name in all_category[best_feature_idx]:
+            if name not in tree[best_feature_name]:
+                tree[best_feature_name][name] = get_most_frequent_label(label_list)
+
     return tree
 
 
@@ -114,12 +119,17 @@ def run():
     dataset, train_columns, label = get_data(train_file_name, False)
     testset, test_columns, _ = get_data(test_file_name, True)
 
+    all_category = [set() for _ in range(len(train_columns))]
+    for row in dataset:
+        for j in range(len(train_columns)):
+            all_category[j].add(row[j])
+
     label_data = []
     for row in dataset:
         label_data.append(row[-1])
     miss_label = Counter(label_data).most_common(1)[0][0]
 
-    tree = build_tree(dataset, train_columns, [False for _ in range(len(train_columns))])
+    tree = build_tree(dataset, train_columns, all_category, [False for _ in range(len(train_columns))])
 
     answer_arr = []
     for row in testset:
